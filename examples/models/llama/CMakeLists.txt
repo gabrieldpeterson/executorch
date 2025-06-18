@@ -70,8 +70,8 @@ set(_common_include_directories ${EXECUTORCH_ROOT}/..)
 
 # For some reason android build is not able to find where gflags is and hence
 # cannot find corresponding .cmake file
-set(gflags_DIR ${CMAKE_CURRENT_BINARY_DIR}/../../../third-party/gflags)
-find_package(gflags REQUIRED)
+# set(gflags_DIR ${CMAKE_CURRENT_BINARY_DIR}/../../../third-party/gflags)
+# find_package(gflags REQUIRED)
 
 #
 # llama_main: test binary to run llama, with tokenizer and sampler integrated
@@ -85,8 +85,10 @@ target_link_options_shared_lib(executorch)
 # llama_runner library
 add_subdirectory(runner)
 
-set(link_libraries executorch gflags)
-set(_srcs main.cpp)
+# Removed gflags dependency which caused target conflicts, and uses our 
+# simplified main that doesn't require gflags
+set(link_libraries executorch)
+set(_srcs simple_main.cpp)
 
 if(TARGET optimized_native_cpu_ops_lib)
   list(
