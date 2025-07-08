@@ -16,7 +16,9 @@ which "${PYTHON_EXECUTABLE}"
 build_android_native_library() {
   ANDROID_ABI="$1"
   ANDROID_NDK="${ANDROID_NDK:-/opt/ndk}"
-  CMAKE_OUT="cmake-out-android-${ANDROID_ABI}"
+  # Use paths relative to the executorch root directory
+  EXECUTORCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+  CMAKE_OUT="${EXECUTORCH_ROOT}/cmake-out-android-${ANDROID_ABI}"
   EXECUTORCH_CMAKE_BUILD_TYPE="${EXECUTORCH_CMAKE_BUILD_TYPE:-Release}"
   QNN_SDK_ROOT="${QNN_SDK_ROOT:-}"
   if [ -n "$QNN_SDK_ROOT" ]; then
@@ -37,7 +39,7 @@ build_android_native_library() {
 
   # Skip cmake configuration if build directory exists and is recent
   if [ ! -d "${CMAKE_OUT}" ] || [ "${FORCE_CMAKE_CONFIGURE:-0}" == "1" ]; then
-    cmake . -DCMAKE_INSTALL_PREFIX="${CMAKE_OUT}" \
+    cmake "${EXECUTORCH_ROOT}" -DCMAKE_INSTALL_PREFIX="${CMAKE_OUT}" \
       -DCMAKE_TOOLCHAIN_FILE="${ANDROID_NDK}/build/cmake/android.toolchain.cmake" \
       -DANDROID_ABI="${ANDROID_ABI}" \
       -DANDROID_PLATFORM=android-26 \
@@ -82,7 +84,7 @@ build_android_native_library() {
 
   # Skip cmake configuration for extension if build directory exists
   if [ ! -d "${CMAKE_OUT}/extension/android" ] || [ "${FORCE_CMAKE_CONFIGURE:-0}" == "1" ]; then
-    cmake extension/android \
+    cmake "${EXECUTORCH_ROOT}/extension/android" \
       -DCMAKE_TOOLCHAIN_FILE=${ANDROID_NDK}/build/cmake/android.toolchain.cmake \
       -DANDROID_ABI="${ANDROID_ABI}" \
       -DANDROID_PLATFORM=android-26 \
@@ -103,9 +105,12 @@ build_android_native_library() {
   cmake --build "${CMAKE_OUT}"/extension/android -j "${CMAKE_JOBS}" --config "${EXECUTORCH_CMAKE_BUILD_TYPE}"
 
   # Copy artifacts to ABI specific directory
-  local SO_STAGE_DIR="cmake-out-android-so/${ANDROID_ABI}"
+  local SO_STAGE_DIR="${EXECUTORCH_ROOT}/cmake-out-android-so/${ANDROID_ABI}"
   mkdir -p ${SO_STAGE_DIR}
   cp "${CMAKE_OUT}"/extension/android/*.so "${SO_STAGE_DIR}/libexecutorch.so"
+
+  # Also keep the original file in place for compatibility
+  # The file libexecutorch_jni.so remains in its original location
 
   # Copy QNN related so library
   if [ -n "$QNN_SDK_ROOT" ] && [ "$ANDROID_ABI" == "arm64-v8a" ]; then
@@ -130,9 +135,9 @@ build_android_native_library() {
 
 build_aar() {
   if [ "$EXECUTORCH_CMAKE_BUILD_TYPE" == "Release" ]; then
-    find cmake-out-android-so -type f -name "*.so" -exec "$ANDROID_NDK"/toolchains/llvm/prebuilt/*/bin/llvm-strip {} \;
+    find "${EXECUTORCH_ROOT}/cmake-out-android-so" -type f -name "*.so" -exec "$ANDROID_NDK"/toolchains/llvm/prebuilt/*/bin/llvm-strip {} \;
   fi
-  pushd extension/android/
+  pushd "${EXECUTORCH_ROOT}/extension/android/"
 
   # Configure Gradle to use more memory and parallel execution
   export GRADLE_OPTS="${GRADLE_OPTS:--Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8}"
@@ -154,7 +159,7 @@ build_aar() {
 
   popd
   if [ ! -z $BUILD_AAR_DIR ]; then
-    cp extension/android/executorch_android/build/outputs/aar/executorch_android-debug.aar "${BUILD_AAR_DIR}/executorch.aar"
+    cp "${EXECUTORCH_ROOT}/extension/android/executorch_android/build/outputs/aar/executorch_android-debug.aar" "${BUILD_AAR_DIR}/executorch.aar"
   fi
 }
 
@@ -173,13 +178,16 @@ build_all_abis_parallel() {
 }
 
 main() {
+  # Set EXECUTORCH_ROOT for main function too
+  EXECUTORCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
   if [ -z "$ANDROID_ABIS" ]; then
     # For workshop, only build arm64-v8a by default to save time
     ANDROID_ABIS=("arm64-v8a")
   fi
   export ANDROID_ABIS
 
-  mkdir -p cmake-out-android-so/
+  mkdir -p "${EXECUTORCH_ROOT}/cmake-out-android-so/"
 
   if [ "${PARALLEL_ABI_BUILD:-0}" == "1" ] && [ ${#ANDROID_ABIS[@]} -gt 1 ]; then
     build_all_abis_parallel

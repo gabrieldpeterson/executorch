@@ -20,7 +20,10 @@ export GRADLE_MAX_WORKERS=16
 export ANDROID_ABIS=arm64-v8a  # Build only arm64 for workshop
 export SKIP_TESTS=0  # Set to 1 to skip tests and save ~1-2 minutes
 
+# Get the executorch root directory
+EXECUTORCH_ROOT="$(cd "$BASEDIR/../../../.." && pwd)"
+
 # Use the optimized build script
-bash "$BASEDIR"/../../../../scripts/build_android_library_optimized.sh
+bash "${EXECUTORCH_ROOT}/scripts/build_android_library_optimized.sh"
 
 cp "$BUILD_AAR_DIR/executorch.aar" "$BASEDIR"/app/libs/executorch.aar
