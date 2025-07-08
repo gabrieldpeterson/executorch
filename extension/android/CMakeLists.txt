@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-cmake_minimum_required(VERSION 3.24) # 3.24 is required for WHOLE_ARCHIVE
+cmake_minimum_required(VERSION 3.22) # 3.24 is required for WHOLE_ARCHIVE
 
 project(executorch_jni)
 

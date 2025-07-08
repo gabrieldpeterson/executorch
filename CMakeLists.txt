@@ -45,7 +45,7 @@
 # ~~~
 #
 
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.22)
 project(executorch)
 
 # MARK: - Start EXECUTORCH_H12025_BUILD_MIGRATION
